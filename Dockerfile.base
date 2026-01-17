@@ -12,27 +12,36 @@ RUN cd /code && \
     git clone --depth=1 https://github.com/mfem/mfem.git && \
     git clone --depth=1 https://github.com/dealii/dealii.git
 
-# This is for a spack environment/view to install from there
-RUN mkdir -p /opt/hpc-env
-COPY ./spack.yaml /opt/hpc-env/spack.yaml
+# Create separate Spack environments for dev and prod
+RUN mkdir -p /opt/env-dev /opt/env-prod
+COPY ./spack.yaml /opt/env-dev/spack.yaml
+COPY ./spack.prod.yaml /opt/env-prod/spack.yaml
 
 RUN cd /opt/spack && spack --version && \
       git pull && spack --version
 
 
-RUN cd /opt/hpc-env && \
-    . /opt/spack/share/spack/setup-env.sh && \
+RUN . /opt/spack/share/spack/setup-env.sh && \
+    cd /opt/env-dev && \
     spack env activate . && \
     spack concretize -f && \
-    spack install && \
-    spack clean --all && \
+    spack install
+
+RUN . /opt/spack/share/spack/setup-env.sh && \
+    cd /opt/env-prod && \
+    spack env activate . && \
+    spack concretize -f && \
+    spack install
+
+# Cleanup build artifacts (safe to ignore find errors)
+RUN spack clean --all && \
     find /opt/software -type d -name build -exec rm -rf {} + 2>/dev/null || true
 
-# ensure mfem always on various paths
-RUN cd /opt/hpc-env && \
+# ensure dev env auto-activates in login shells
+RUN cd /opt/env-dev && \
     spack env activate --sh -d . >> /etc/profile.d/z10_spack_environment.sh
 
 # Present the software install when we shell in
-# The view is at /opt/views/view (configured in spack.yaml)
+# Dev view: /opt/views/dev; Prod view: /opt/views/dealii-release
 WORKDIR /opt/software
 ENTRYPOINT ["/bin/bash", "--rcfile", "/etc/profile", "-l"]
