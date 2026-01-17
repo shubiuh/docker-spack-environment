@@ -1,6 +1,6 @@
 FROM ghcr.io/rse-ops/ubuntu:24.04
 
-# docker build -f Dockerfile.base -t shubin/hpc-dev .
+# docker build -f Dockerfile.base -t hpc-dev .
 
 RUN apt-get update && \
     apt-get install -y unzip gfortran && \
@@ -9,7 +9,8 @@ RUN apt-get update && \
 # /code is the working directory for code
 WORKDIR /code
 RUN cd /code && \
-    git clone --depth=1 https://github.com/mfem/mfem.git
+    git clone --depth=1 https://github.com/mfem/mfem.git && \
+    git clone --depth=1 https://github.com/dealii/dealii.git
 
 # This is for a spack environment/view to install from there
 RUN mkdir -p /opt/hpc-env
@@ -22,8 +23,7 @@ RUN cd /opt/spack && spack --version && \
 RUN cd /opt/hpc-env && \
     . /opt/spack/share/spack/setup-env.sh && \
     spack env activate . && \
-    spack develop --path /code mfem@master+examples+miniapps && \
-    spack add mfem@master+examples+miniapps && \
+    spack concretize -f && \
     spack install && \
     spack clean --all && \
     find /opt/software -type d -name build -exec rm -rf {} + 2>/dev/null || true
@@ -33,6 +33,6 @@ RUN cd /opt/hpc-env && \
     spack env activate --sh -d . >> /etc/profile.d/z10_spack_environment.sh
 
 # Present the software install when we shell in
-# The view is at /opt/hpc-env/.spack-env/view
+# The view is at /opt/views/view (configured in spack.yaml)
 WORKDIR /opt/software
 ENTRYPOINT ["/bin/bash", "--rcfile", "/etc/profile", "-l"]
