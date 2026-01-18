@@ -2,18 +2,21 @@ spack:
   specs:
   - cmake
   - meson@1.2.2
+  - mesa@25.0.5 ^meson@1.2.2
   - dealii@9.7.1~adol-c~arborx~arpack~assimp~cgal+complex~cuda~doc~examples~ginkgo~gmsh+gsl~hdf5~int64~ipo+kokkos+metis+mpi+muparser~nanoflann~netcdf~optflags+p4est+petsc+platform-introspection+python+scalapack+simplex+slepc~sundials~symengine+taskflow~threads~trilinos~vtk build_type=Release
-  - python@:3.10.99
+  - python@:3.12.99
   - mumps+mpi+metis+parmetis
   - mpich@:4.1.99 datatype-engine=dataloop
   - petsc+hypre+mumps~hdf5
   - slepc
   - taskflow@master
+  - mfem@develop+examples+miniapps
   packages:
     meson:
       require:
-        - meson ^python@:3.10.99
+        - meson ^python@:3.12.99
     all:
+      compiler: [gcc]
       target:
       - x86_64
       providers:

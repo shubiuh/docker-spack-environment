@@ -1,0 +1,81 @@
+FROM shubinuh/spack-hpc:base
+
+# ARG to control spack install (set to "false" to skip)
+ARG BUILD_SPACK=false
+# Build command:
+# docker build -f Dockerfile.dev -t shubinuh/spack-hpc:develop .
+
+LABEL maintainer="@shubinuh"
+
+RUN apt-get update && apt-get install -y gfortran supervisor
+# Create separate Spack environments for dev and prod
+RUN mkdir -p /opt/env-dev /opt/env-prod
+COPY ./spack.yaml /opt/env-dev/spack.yaml
+COPY ./spack.prod.yaml /opt/env-prod/spack.yaml
+
+USER root
+RUN apt-get install -y git-lfs clang clang-tools clangd cmake autoconf \
+      automake gdb libffi-dev zlib1g-dev \
+      libssl-dev xz-utils pkgconf wget libarchive-tools
+
+RUN update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++ 100 && \
+   update-alternatives --install /usr/bin/cc cc /usr/bin/clang 100
+
+WORKDIR /opt/archives
+
+RUN useradd --create-home --shell /bin/bash euler
+# OpenVSCode server
+RUN curl -L https://github.com/gitpod-io/openvscode-server/releases/download/openvscode-server-v1.106.3/openvscode-server-v1.106.3-linux-x64.tar.gz > \
+    /opt/archives/openvscode-server-v1.106.3-linux-x64.tar.gz
+RUN tar xzf openvscode-server-v1.106.3-linux-x64.tar.gz && chown -R euler:euler openvscode-server-v1.106.3-linux-x64
+
+USER euler
+WORKDIR /home/euler
+ADD --chown=euler:euler clangd_compile_flags.txt ./mfem/compile_flags.txt
+
+# Install OpenVSCode as user
+RUN mkdir -p ${HOME}/.openvscode-server/extensions
+RUN cd  ${HOME}/.openvscode-server/extensions && \
+    curl -L https://openvsxorg.blob.core.windows.net/resources/llvm-vs-code-extensions/vscode-clangd/0.3.2/llvm-vs-code-extensions.vscode-clangd-0.3.2.vsix > clangd.vsix && \
+    bsdtar -xvf clangd.vsix extension && \
+    mv extension llvm-vs-code-extensions.vscode-clangd-0.3.2   
+
+RUN curl -L https://github.com/aaugustin/websockets/archive/refs/tags/14.2.tar.gz > ./websockets-14.2.tar.gz && \
+    tar xzf websockets-14.2.tar.gz && \
+    cd websockets-14.2 && \
+    pip install --user --break-system-packages .
+
+# GLVis JS
+RUN git lfs install && git clone --depth=1 https://github.com/GLVis/glvis-js.git
+
+USER root
+ADD supervisord.conf /etc/supervisord.conf
+RUN touch /var/log/glvis-js-webserver.log /var/log/glvis-browser-server.log /var/log/openvscode-server.log && \
+    chown -R euler:euler /var/log/glvis-js-webserver.log /var/log/glvis-browser-server.log /var/log/openvscode-server.log
+
+# Install software in dev and prod envs (combined for efficiency)
+RUN if [ "$BUILD_SPACK" = "true" ]; then \
+        . /opt/spack/share/spack/setup-env.sh && \
+        spack compiler find && \
+        cd /opt/env-dev && spack env activate . && spack concretize -f && spack install && \
+        cd /opt/env-prod && spack env activate . && spack concretize -f && spack install && \
+        spack clean --all; \
+    fi
+
+# Cleanup build artifacts (safe to ignore find errors)
+RUN spack clean --all && \
+    find /opt/software -type d -name build -exec rm -rf {} + 2>/dev/null || true
+
+# ensure dev env auto-activates in login shells
+RUN cd /opt/env-dev && \
+    spack env activate --sh -d . >> /etc/profile.d/z10_spack_environment.sh
+
+# Add flexible entrypoint
+COPY entrypoint-dev.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Present the software install when we shell in
+# Dev view: /opt/views/dev; Prod view: /opt/views/dealii-release
+WORKDIR /opt/software
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["/usr/bin/supervisord"]
