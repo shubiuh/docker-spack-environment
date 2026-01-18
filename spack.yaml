@@ -3,20 +3,24 @@ spack:
   - cmake
   - meson@1.2.2
   - mesa@25.0.5 ^meson@1.2.2
-  - dealii@master+mpi+complex+gmsh+python~vtk build_type=DebugRelease
+  - dealii@master~adol-c~arborx~arpack~assimp~cgal+complex~cuda~doc~examples~ginkgo~gmsh+gsl~hdf5~int64~ipo+kokkos+metis+mpi+muparser~nanoflann~netcdf~optflags+p4est+petsc+platform-introspection+python+scalapack+simplex+slepc~sundials~symengine~taskflow~threads~trilinos~vtk build_type=DebugRelease cxxstd=17 %gcc
   - python@:3.12.99
   - mumps+mpi+metis+parmetis
   - mpich@:4.1.99 datatype-engine=dataloop
   - petsc+hypre+mumps~hdf5
   - slepc
-  - taskflow@master
-  - mfem@develop+examples+miniapps
+  - mfem@develop~amgx~conduit~cuda~debug+examples+exceptions~fms~ginkgo~gnutls+gslib~hiop~lapack+libceed~libunwind+metis+miniapps~mpfr+mpi+mumps+netcdf~occa+openmp~legacy-openmp~petsc~pumi~raja~rocm+shared~slepc+static~strumpack+suite-sparse~sundials~superlu-dist+threadsafe~umpire+zlib+mklpardiso build_system=generic cxxstd=17 precision=double timer=auto %gcc
   packages:
+    kokkos:
+      require: "@:4"
+    gslib:
+      require: cflags="-fPIC"
+    hypre:
+      require: "@:2"
     meson:
       require:
-        - meson ^python@:3.12.99
+      - meson ^python@:3.12.99
     all:
-      compiler: [gcc]
       target:
       - x86_64
       providers:
@@ -32,7 +36,7 @@ spack:
   develop:
     mfem:
       path: /code/mfem
-      spec: mfem@develop+examples+miniapps
+      spec: mfem@develop~amgx~conduit~cuda~debug+examples+exceptions~fms~ginkgo~gnutls+gslib~hiop~lapack+libceed~libunwind+metis+miniapps~mpfr+mpi+mumps+netcdf~occa+openmp~legacy-openmp~petsc~pumi~raja~rocm+shared~slepc+static~strumpack+suite-sparse~sundials~superlu-dist+threadsafe~umpire+zlib+mklpardiso build_system=generic cxxstd=17 precision=double timer=auto %gcc
     dealii:
       path: /code/dealii
-      spec: dealii@master+mpi+complex+gmsh+python~vtk build_type=DebugRelease
+      spec: dealii@master~adol-c~arborx~arpack~assimp~cgal+complex~cuda~doc~examples~ginkgo~gmsh+gsl~hdf5~int64~ipo+kokkos+metis+mpi+muparser~nanoflann~netcdf~optflags+p4est+petsc+platform-introspection+python+scalapack+simplex+slepc~sundials~symengine~taskflow~threads~trilinos~vtk build_type=DebugRelease cxxstd=17 %gcc

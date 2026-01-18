@@ -1,7 +1,8 @@
 FROM shubinuh/spack-hpc:base
 
 # ARG to control spack install (set to "false" to skip)
-ARG BUILD_SPACK=false
+ARG BUILD_SPACK_DEVELOP=true
+ARG BUILD_SPACK_PRODUCTION=false
 # Build command:
 # docker build -f Dockerfile.dev -t shubinuh/spack-hpc:develop .
 
@@ -12,6 +13,7 @@ RUN apt-get update && apt-get install -y gfortran supervisor
 RUN mkdir -p /opt/env-dev /opt/env-prod
 COPY ./spack.yaml /opt/env-dev/spack.yaml
 COPY ./spack.prod.yaml /opt/env-prod/spack.yaml
+COPY ./mfem_package.py /opt/env-prod/mfem_package.py
 
 USER root
 RUN apt-get install -y git-lfs clang clang-tools clangd cmake autoconf \
@@ -53,11 +55,19 @@ ADD supervisord.conf /etc/supervisord.conf
 RUN touch /var/log/glvis-js-webserver.log /var/log/glvis-browser-server.log /var/log/openvscode-server.log && \
     chown -R euler:euler /var/log/glvis-js-webserver.log /var/log/glvis-browser-server.log /var/log/openvscode-server.log
 
+# Symlink llvm-config, otherwise mesa@25.0.5 will fail to find it
+RUN ln -s /usr/bin/llvm-config-18 /usr/bin/llvm-config
 # Install software in dev and prod envs (combined for efficiency)
-RUN if [ "$BUILD_SPACK" = "true" ]; then \
+RUN if [ "$BUILD_SPACK_DEVELOP" = "true" ]; then \
         . /opt/spack/share/spack/setup-env.sh && \
-        spack compiler find && \
+        spack compiler find && cp /opt/env-prod/mfem_package.py /root/.spack/package_repos/fncqgg4/repos/spack_repo/builtin/packages/mfem/package.py && \
         cd /opt/env-dev && spack env activate . && spack concretize -f && spack install && \
+        spack clean --all; \
+    fi
+
+RUN if [ "$BUILD_SPACK_PRODUCTION" = "true" ]; then \
+        . /opt/spack/share/spack/setup-env.sh && \
+        spack compiler find && cp /opt/env-prod/mfem_package.py /root/.spack/package_repos/fncqgg4/repos/spack_repo/builtin/packages/mfem/package.py && \
         cd /opt/env-prod && spack env activate . && spack concretize -f && spack install && \
         spack clean --all; \
     fi
@@ -79,3 +89,10 @@ RUN chmod +x /entrypoint.sh
 WORKDIR /opt/software
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["/usr/bin/supervisord"]
+
+# Example to run the container with server capabilities:
+    # docker run --cap-add=SYS_PTRACE -p 3000:3000 -p 8000:8000 -p 8080:8080 shubinuh/spack-hpc:server
+    # In particular, the VS Code and GLVis windows can be accessed at localhost:3000 and localhost:8000/live respectively.
+
+# Example to run the container with an interactive shell:
+    # docker run --cap-add=SYS_PTRACE -it shubinuh/spack-hpc:develop /bin/bash
