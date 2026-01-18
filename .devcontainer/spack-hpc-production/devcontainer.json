@@ -1,0 +1,19 @@
+{
+  "name": "spack-hpc-production",
+  "image": "shubinuh/spack-hpc:production",
+  "runArgs": [
+    "--gpus", "all",
+    "--name", "spack-hpc-production",
+    "--hostname", "spack-hpc-production"
+  ],
+  "workspaceMount": "source=${localWorkspaceFolder},target=/docker_ws,type=bind",
+  "workspaceFolder": "/docker_ws",
+  "remoteUser": "root",
+  "overrideCommand": true,
+  "containerCommand": ["bash", "-l"],
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-azuretools.vscode-docker"]
+    }
+  }
+}

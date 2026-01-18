@@ -1,0 +1,47 @@
+FROM shubinuh/spack-hpc:develop
+
+# ARG to control spack install (set to "false" to skip)
+ARG BUILD_SPACK_PRODUCTION=true
+# Build command:
+# docker build -f Dockerfile.production -t shubinuh/spack-hpc:production .
+
+LABEL maintainer="@shubinuh"
+
+COPY ./spack.prod.yaml /opt/env-prod/spack.yaml
+COPY ./mfem_package.py /opt/env-prod/mfem_package.py
+
+USER root
+
+# Install software in prod env
+RUN if [ "$BUILD_SPACK_PRODUCTION" = "true" ]; then \
+        . /opt/spack/share/spack/setup-env.sh && \
+        spack compiler find && cp /opt/env-prod/mfem_package.py /root/.spack/package_repos/fncqgg4/repos/spack_repo/builtin/packages/mfem/package.py && \
+        cd /opt/env-prod && spack env activate . && spack concretize -f && spack install && \
+        spack clean --all; \
+    fi
+
+# Cleanup build artifacts (safe to ignore find errors)
+RUN spack clean --all && \
+    find /opt/software -type d -name build -exec rm -rf {} + 2>/dev/null || true
+
+# ensure dev env auto-activates in login shells
+RUN cd /opt/env-dev && \
+    spack env activate --sh -d . >> /etc/profile.d/z10_spack_environment.sh
+
+# Add flexible entrypoint
+COPY entrypoint-dev.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Present the software install when we shell in
+# Dev view: /opt/views/dev; Prod view: /opt/views/dealii-release
+WORKDIR /opt/software
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["/usr/bin/supervisord"]
+
+# Example to run the container with server capabilities:
+    # docker run --cap-add=SYS_PTRACE -p 3000:3000 -p 8000:8000 -p 8080:8080 shubinuh/spack-hpc:production
+    # In particular, the VS Code and GLVis windows can be accessed at localhost:3000 and localhost:8000/live respectively.
+
+# Example to run the container with an interactive shell:
+    # docker run --cap-add=SYS_PTRACE -it shubinuh/spack-hpc:production /bin/bash
+    # docker run --cap-add=SYS_PTRACE -it --name production-work -v D:/docker_ws:/workspace shubinuh/spack-hpc:production /bin/bash

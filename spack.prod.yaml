@@ -26,8 +26,8 @@ spack:
       providers:
         mpi: [mpich]
   view:
-    root: /opt/views/dealii-release
-    link_type: copy
+    root: /opt/views/production
+    link_type: symlink
   concretizer:
     unify: true
   config:

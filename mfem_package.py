@@ -57,15 +57,22 @@ class Mfem(Package, CudaPackage, ROCmPackage):
     version(
        "4.8.3",
        sha256="4d1932ab4b2ae29837de9b70b25e4d3986326b221d4297fa5b08158a51bf63a9",
-       url="https://github.com/shubiuh/mfem/archive/refs/tags/v4.8.3",
-       extension="tar.gz",
+       url="https://github.com/shubiuh/mfem/archive/refs/tags/v4.8.3.tar.gz",
+       extension="",
+    )
+    
+    version(
+        "4.8.2",
+        sha256="f226d1eafd6e1d0173d1d2ac85927e69278bd70f0fd82fd2c9eadbd682b45502",
+        url="https://github.com/shubiuh/mfem/archive/refs/tags/v4.8.2.tar.gz",
+        extension="",
     )
     
     version(
         "4.8.1",
         sha256="2c744085b9eaef075ae30b2a8446197b34168d65b6bcbfcdb7fdc7e0492ece30",
-        url="https://codeload.github.com/shubiuh/mfem/tar.gz/refs/tags/v4.8.1",
-        extension="tar.gz",
+        url="https://github.com/shubiuh/mfem/archive/refs/tags/v4.8.1.tar.gz",
+        extension="",
     )
     
     version(

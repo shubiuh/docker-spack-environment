@@ -11,7 +11,7 @@ LABEL maintainer="@shubinuh"
 RUN apt-get update && apt-get install -y gfortran supervisor
 # Create separate Spack environments for dev and prod
 RUN mkdir -p /opt/env-dev /opt/env-prod
-COPY ./spack.yaml /opt/env-dev/spack.yaml
+COPY ./spack.dev.yaml /opt/env-dev/spack.yaml
 COPY ./spack.prod.yaml /opt/env-prod/spack.yaml
 COPY ./mfem_package.py /opt/env-prod/mfem_package.py
 
@@ -26,6 +26,10 @@ RUN update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++ 100 && \
 WORKDIR /opt/archives
 
 RUN useradd --create-home --shell /bin/bash euler
+# Grant euler passwordless sudo for dev convenience
+RUN apt-get install -y sudo && \
+    usermod -aG sudo euler && \
+    echo "euler ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 # OpenVSCode server
 RUN curl -L https://github.com/gitpod-io/openvscode-server/releases/download/openvscode-server-v1.106.3/openvscode-server-v1.106.3-linux-x64.tar.gz > \
     /opt/archives/openvscode-server-v1.106.3-linux-x64.tar.gz
@@ -91,8 +95,8 @@ ENTRYPOINT ["/entrypoint.sh"]
 CMD ["/usr/bin/supervisord"]
 
 # Example to run the container with server capabilities:
-    # docker run --cap-add=SYS_PTRACE -p 3000:3000 -p 8000:8000 -p 8080:8080 shubinuh/spack-hpc:server
+    # docker run --cap-add=SYS_PTRACE -it -p 3000:3000 -p 8000:8000 -p 8080:8080 --name develop-web -v D:/docker_ws:/workspace shubinuh/spack-hpc:develop
     # In particular, the VS Code and GLVis windows can be accessed at localhost:3000 and localhost:8000/live respectively.
 
 # Example to run the container with an interactive shell:
-    # docker run --cap-add=SYS_PTRACE -it shubinuh/spack-hpc:develop /bin/bash
+    # docker run --cap-add=SYS_PTRACE -it --name develop-work -v D:/docker_ws:/workspace shubinuh/spack-hpc:develop /bin/bash
