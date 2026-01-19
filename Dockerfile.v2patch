@@ -1,0 +1,16 @@
+FROM shubinuh/spack-hpc:v2.0
+
+USER root
+ADD supervisordold.conf /etc/supervisord.conf
+RUN touch /var/log/glvis-js-webserver.log /var/log/glvis-browser-server.log /var/log/openvscode-server.log && \
+    chown -R euler:euler /var/log/glvis-js-webserver.log /var/log/glvis-browser-server.log /var/log/openvscode-server.log
+
+# Add flexible entrypoint
+COPY entrypoint-dev.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Present the software install when we shell in
+# Dev view: /opt/views/dev; Prod view: /opt/views/dealii-release
+WORKDIR /opt/software
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["/usr/bin/supervisord"]

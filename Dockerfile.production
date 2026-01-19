@@ -6,7 +6,7 @@ ARG BUILD_SPACK_PRODUCTION=true
 # docker build -f Dockerfile.production -t shubinuh/spack-hpc:production .
 
 LABEL maintainer="@shubinuh"
-
+RUN mkdir -p /opt/env-prod
 COPY ./spack.prod.yaml /opt/env-prod/spack.yaml
 COPY ./mfem_package.py /opt/env-prod/mfem_package.py
 

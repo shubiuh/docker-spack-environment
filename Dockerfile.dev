@@ -8,12 +8,16 @@ ARG BUILD_SPACK_PRODUCTION=false
 
 LABEL maintainer="@shubinuh"
 
-RUN apt-get update && apt-get install -y gfortran supervisor
+RUN apt-get install -y gfortran supervisor
 # Create separate Spack environments for dev and prod
 RUN mkdir -p /opt/env-dev /opt/env-prod
 COPY ./spack.dev.yaml /opt/env-dev/spack.yaml
 COPY ./spack.prod.yaml /opt/env-prod/spack.yaml
 COPY ./mfem_package.py /opt/env-prod/mfem_package.py
+
+# update mfem folder to custom fork/branch
+RUN rm -rf /code/mfem && \
+    git clone --depth=1 --branch v48 --single-branch https://github.com/shubiuh/mfem.git /code/mfem
 
 USER root
 RUN apt-get install -y git-lfs clang clang-tools clangd cmake autoconf \
@@ -26,10 +30,7 @@ RUN update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++ 100 && \
 WORKDIR /opt/archives
 
 RUN useradd --create-home --shell /bin/bash euler
-# Grant euler passwordless sudo for dev convenience
-RUN apt-get install -y sudo && \
-    usermod -aG sudo euler && \
-    echo "euler ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
 # OpenVSCode server
 RUN curl -L https://github.com/gitpod-io/openvscode-server/releases/download/openvscode-server-v1.106.3/openvscode-server-v1.106.3-linux-x64.tar.gz > \
     /opt/archives/openvscode-server-v1.106.3-linux-x64.tar.gz
@@ -87,6 +88,11 @@ RUN cd /opt/env-dev && \
 # Add flexible entrypoint
 COPY entrypoint-dev.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
+
+# Grant euler passwordless sudo for dev convenience
+RUN apt-get install -y sudo && \
+    usermod -aG sudo euler && \
+    echo "euler ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 # Present the software install when we shell in
 # Dev view: /opt/views/dev; Prod view: /opt/views/dealii-release
